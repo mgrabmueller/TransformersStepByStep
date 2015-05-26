@@ -17,7 +17,7 @@ category:            Development
 build-type:          Simple
 cabal-version:       >=1.10
 
-extra-source-files:  bibliography.bib changelog.txt
+extra-source-files:  bibliography.bib ChangeLog.md README.md
 
 source-repository head
   type:     git
