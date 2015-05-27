@@ -1,5 +1,5 @@
 name:                TransformersStepByStep
-version:             0.1.0.2
+version:             0.1.1.0
 synopsis:            Tutorial on monad transformers.
 description:         In this tutorial, we describe how to use monad
 		     transformers in order to incrementally add
