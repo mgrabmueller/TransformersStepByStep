@@ -45,7 +45,7 @@ by providing a library of different monads and types and functions for
 combining these monads, it is possible to create custom monads simply
 by composing the necessary monad transformers.  For example, if you
 need a monad with state and error handling, just take the |StateT| and
-|ErrorT| monad transformers and combine them.  The goal of this paper
+|ExceptT| monad transformers and combine them.  The goal of this paper
 is to give a gentle introduction to the use of monad transformers by
 starting with a simple function and extending it step by step with
 various monadic operations in order to extend its functionality.  This
@@ -97,7 +97,7 @@ will be used throughout the paper.  All the code will be located in a module cal
 > module Main where
 > 
 > import Control.Monad.Identity
-> import Control.Monad.Error
+> import Control.Monad.Except
 > import Control.Monad.Reader
 > import Control.Monad.State
 > import Control.Monad.Writer
@@ -323,12 +323,12 @@ means it will terminate with an error message for some inputs, for
 example for expressions with unbound variables or type errors.
 
 Using monad transformers, we simply go to our local monad transformer
-library and take the |ErrorT| monad transformer, using it to extend
+library and take the |ExceptT| monad transformer, using it to extend
 the basic |Eval1| monad to |Eval2|.
 
-> type Eval2 alpha = ErrorT String Identity alpha
+> type Eval2 alpha = ExceptT String Identity alpha
 
-The |String| type argument to |ErrorT| is the type of exceptions, that
+The |String| type argument to |ExceptT| is the type of exceptions, that
 is the values which are used to indicate error conditions.  We use
 |String| here to keep things simple, in a real implementation we might
 want to include source code locations (in a compiler) or time stamps
@@ -339,11 +339,11 @@ two ways.  First, the result of evaluation is now of type |Either
 String alpha|, where the result |Left s| indicates that an error has
 occurred with error message |s|, or |Right r|, which stands for
 successful evaluation with result~|r|.  Second, we need to call the
-function |runErrorT| on the given computation to yield an |Identity|
+function |runExceptT| on the given computation to yield an |Identity|
 computation, which can in turn be evaluated using |runIdentity|.
 
 > runEval2     :: Eval2 alpha -> Either String alpha
-> runEval2 ev  = runIdentity (runErrorT ev)
+> runEval2 ev  = runIdentity (runExceptT ev)
 
 We can now simply change the type of our |eval1| function, giving the
 following version, called |eval2a|.
@@ -369,7 +369,7 @@ runEval2 (eval2a Map.empty exampleExp) => Right (IntVal 18)
 \end{spec}
 
 But unfortunately, when given an invalid expression, the error
-reporting of the |ErrorT| transformer is not used.  We have to modify
+reporting of the |ExceptT| transformer is not used.  We have to modify
 our definition in order to give useful error messages:
 
 > eval2b                   ::  Env -> Exp -> Eval2 Value
@@ -478,14 +478,14 @@ change the value used by surrounding computations.
 We start by simply wrapping a |ReaderT| constructor around our
 previous monad.
 
-> type Eval3 alpha = ReaderT Env (ErrorT String Identity) alpha
+> type Eval3 alpha = ReaderT Env (ExceptT String Identity) alpha
 
 The run function |runEval3| must be slightly modified, because we need
 to pass in the initial environment.  The reason is that we will remove
 the environment parameter from the evaluation function.
 
 > runEval3     :: Env -> Eval3 alpha -> Either String alpha
-> runEval3 env ev  = runIdentity (runErrorT (runReaderT ev env))
+> runEval3 env ev  = runIdentity (runExceptT (runReaderT ev env))
 
 > eval3               ::  Exp -> Eval3 Value
 > eval3 (Lit i)       =   return $ IntVal i
@@ -546,7 +546,7 @@ is a simple integer value, but it could be a value of any data type we
 wish.  Normally, it will be a record holding the complete state
 necessary for the task at hand.
 
-> type Eval4 alpha = ReaderT Env (ErrorT String (StateT Integer Identity)) alpha
+> type Eval4 alpha = ReaderT Env (ExceptT String (StateT Integer Identity)) alpha
 
 The return type of the function |runEval4| changes, because the final
 state is returned together with the evaluation result (error or
@@ -555,7 +555,7 @@ parameter so that we gain some flexibility (this can be used, for
 example, to start a computation in the final state of another one).
 
 > runEval4            ::  Env -> Integer -> Eval4 alpha -> (Either String alpha, Integer)
-> runEval4 env st ev  =   runIdentity (runStateT (runErrorT (runReaderT ev env)) st)
+> runEval4 env st ev  =   runIdentity (runStateT (runExceptT (runReaderT ev env)) st)
 
 For our simple example, we only want to count the number of evaluation
 steps, that is the number of calls to the |eval4| function.  All
@@ -611,16 +611,16 @@ and took 8 reduction steps.
 \paragraph{Note:}
 
 When the type of the |Eval4| monad is changed to the following
-(|StateT| and |ErrorT| are swapped), the interpretation of the monad changes.
+(|StateT| and |ExceptT| are swapped), the interpretation of the monad changes.
 
-> type Eval4' alpha    =   ReaderT Env (StateT Integer (ErrorT String Identity)) alpha
+> type Eval4' alpha    =   ReaderT Env (StateT Integer (ExceptT String Identity)) alpha
 
 Instead of returning a result (error or normal) and a state, either an
 error or a result together with the final state is returned, as can be
 seen in the type of the corresponding run function:
 
 > runEval4'            ::  Env -> Integer -> Eval4' alpha -> (Either String (alpha, Integer))
-> runEval4' env st ev  =   runIdentity (runErrorT (runStateT (runReaderT ev env) st))
+> runEval4' env st ev  =   runIdentity (runExceptT (runStateT (runReaderT ev env) st))
 
 The position of the reader monad transformer does not matter, since it
 does not contribute to the final result.
@@ -639,11 +639,11 @@ is |WriterT|.  It is in some sense dual to |ReaderT|, because the
 functions it provides let you add values to the result of the
 computation instead of using some values passed in.
 
-> type Eval5 alpha = ReaderT Env  (ErrorT String 
+> type Eval5 alpha = ReaderT Env  (ExceptT String 
 >                                 (WriterT [String] (StateT Integer Identity))) alpha
 
-Similar to |StateT|, |WriterT| interacts with |ErrorT| because it
-produces output.  So depending on the order of |ErrorT| and |WriterT|,
+Similar to |StateT|, |WriterT| interacts with |ExceptT| because it
+produces output.  So depending on the order of |ExceptT| and |WriterT|,
 the result will include the values written out or not when an error
 occurs.  The values to be written out will be lists of strings.  When
 you read the documentation for the |WriterT| monad transformer, you
@@ -656,7 +656,7 @@ The running function is extended in the same way as earlier.
 
 > runEval5            ::  Env -> Integer -> Eval5 alpha -> ((Either String alpha, [String]), Integer)
 > runEval5 env st ev  =   
->     runIdentity (runStateT (runWriterT (runErrorT (runReaderT ev env))) st)
+>     runIdentity (runStateT (runWriterT (runExceptT (runReaderT ev env))) st)
 
 In the evaluation function, we illustrate the use of the writer monad
 by writing out the name of each variable encountered during evaluation.
@@ -703,7 +703,7 @@ into our framework: we simply substitute |IO| where we have used
 and as we have seen, the function |runIdentity| for evaluating actions
 in this monad is always applied last.
 
-> type Eval6 alpha = ReaderT Env  (ErrorT String 
+> type Eval6 alpha = ReaderT Env  (ExceptT String 
 >                                 (WriterT [String] (StateT Integer IO))) alpha
 
 The return type of |runEval6| is wrapped in an |IO| constructor, which
@@ -713,7 +713,7 @@ the result.  Accordingly, the |runIdentity| invocation disappears.
 
 > runEval6           ::  Env -> Integer -> Eval6 alpha -> IO ((Either String alpha, [String]), Integer)
 > runEval6 env st ev  =   
->     runStateT (runWriterT (runErrorT (runReaderT ev env))) st
+>     runStateT (runWriterT (runExceptT (runReaderT ev env))) st
 
 In the |eval6| function we can now use I/O operations, with one minor
 notational inconvenience: we have to invoke the operations using the
@@ -834,4 +834,4 @@ GHC versions.
 >           print r6'
 
 
---  LocalWords:  ErrorT StateT GHC Exp deconstruct monad's ReaderT Env
+--  LocalWords:  ExceptT StateT GHC Exp deconstruct monad's ReaderT Env
