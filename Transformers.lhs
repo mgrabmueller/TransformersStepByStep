@@ -95,16 +95,16 @@ As a running example, an interpreter for a simple programming language
 will be used throughout the paper.  All the code will be located in a module called |Transformers|, which has the following header:
 
 > module Main where
-> 
+>
 > import Control.Monad.Identity
 > import Control.Monad.Except
 > import Control.Monad.Reader
 > import Control.Monad.State
 > import Control.Monad.Writer
-> 
+>
 > import Data.Maybe
 > import qualified Data.Map as Map
-> 
+>
 
 Several of the imported modules beginning with |Control.Monad| are
 only needed when you use the monad transformers defined there.  The
@@ -117,18 +117,18 @@ The following data types for modelling programs in that language will
 be used:
 
 > type Name   =  String                -- variable names
-> 
+>
 > data Exp    =  Lit Integer           -- expressions
 >             |  Var Name
 >             |  Plus Exp Exp
 >             |  Abs Name Exp
 >             |  App Exp Exp
 >             deriving (Show)
-> 
+>
 > data Value  =  IntVal Integer        -- values
 >             |  FunVal Env Name Exp
 >             deriving (Show)
-> 
+>
 > type Env    =  Map.Map Name Value    -- mapping from names to values
 
 The |Name| type is simply a shorthand for the standard |String| type.
@@ -238,7 +238,7 @@ wrapped.  For readability, we also define a function |runEval1|, which
 simply calls |runIdentity|.
 
 > type Eval1 alpha  =   Identity alpha
-> 
+>
 > runEval1          ::  Eval1 alpha -> alpha
 > runEval1 ev       =   runIdentity ev
 
@@ -248,8 +248,8 @@ Based on the |Eval1| monad, we now rewrite the |eval0| function as
 > eval1                   ::  Env -> Exp -> Eval1 Value
 > eval1 env (Lit i)       =   return $ IntVal i
 > eval1 env (Var n)       =   maybe (fail ("undefined variable: " ++ n)) return $ Map.lookup n env
-> eval1 env (Plus e1 e2)  =   do  IntVal i1  <- eval1 env e1
->                                 IntVal i2  <- eval1 env e2
+> eval1 env (Plus e1 e2)  =   do  ~(IntVal i1)  <- eval1 env e1
+>                                 ~(IntVal i2)  <- eval1 env e2
 >                                 return $ IntVal (i1 + i2)
 > eval1 env (Abs n e)     =   return $ FunVal env n e
 > eval1 env (App e1 e2)   =   do  val1  <- eval1 env e1
@@ -293,9 +293,9 @@ of monadic actions using |do| notation or the |>>=| or |>>| (monadic
 bind) functions.
 
 \paragraph{Note:}
-The type of |eval1| could be generalized to 
+The type of |eval1| could be generalized to
 $$
-|eval1 :: Monad m => Env -> Exp -> m Value|, 
+|eval1 :: Monad m => Env -> Exp -> m Value|,
 $$
 because we do not use any monadic operations other than |return| and
 |>>=| (hidden in the |do| notation).  This allows the use of |eval1|
@@ -351,8 +351,8 @@ following version, called |eval2a|.
 > eval2a                   ::  Env -> Exp -> Eval2 Value
 > eval2a env (Lit i)       =   return $ IntVal i
 > eval2a env (Var n)       =   maybe (fail ("undefined variable: " ++ n)) return $ Map.lookup n env
-> eval2a env (Plus e1 e2)  =   do  IntVal i1  <- eval2a env e1
->                                  IntVal i2  <- eval2a env e2
+> eval2a env (Plus e1 e2)  =   do  ~(IntVal i1)  <- eval2a env e1
+>                                  ~(IntVal i2)  <- eval2a env e2
 >                                  return $ IntVal (i1 + i2)
 > eval2a env (Abs n e)     =   return $ FunVal env n e
 > eval2a env (App e1 e2)   =   do  val1  <- eval2a env e1
@@ -419,11 +419,11 @@ what we want.
 > eval2c                   ::  Env -> Exp -> Eval2 Value
 > eval2c env (Lit i)       =   return $ IntVal i
 > eval2c env (Var n)       =   maybe (fail ("undefined variable: " ++ n)) return $ Map.lookup n env
-> eval2c env (Plus e1 e2)  =   do  IntVal i1  <- eval2c env e1
->                                  IntVal i2  <- eval2c env e2
+> eval2c env (Plus e1 e2)  =   do  ~(IntVal i1)  <- eval2c env e1
+>                                  ~(IntVal i2)  <- eval2c env e2
 >                                  return $ IntVal (i1 + i2)
 > eval2c env (Abs n e)     =   return $ FunVal env n e
-> eval2c env (App e1 e2)   =   do  FunVal env' n body  <- eval2c env e1
+> eval2c env (App e1 e2)   =   do  ~(FunVal env' n body)  <- eval2c env e1
 >                                  val2                <- eval2c env e2
 >                                  eval2c (Map.insert n val2 env') body
 
@@ -639,7 +639,7 @@ is |WriterT|.  It is in some sense dual to |ReaderT|, because the
 functions it provides let you add values to the result of the
 computation instead of using some values passed in.
 
-> type Eval5 alpha = ReaderT Env  (ExceptT String 
+> type Eval5 alpha = ReaderT Env  (ExceptT String
 >                                 (WriterT [String] (StateT Integer Identity))) alpha
 
 Similar to |StateT|, |WriterT| interacts with |ExceptT| because it
@@ -655,7 +655,7 @@ value and to combine several values written out.
 The running function is extended in the same way as earlier.
 
 > runEval5            ::  Env -> Integer -> Eval5 alpha -> ((Either String alpha, [String]), Integer)
-> runEval5 env st ev  =   
+> runEval5 env st ev  =
 >     runIdentity (runStateT (runWriterT (runExceptT (runReaderT ev env))) st)
 
 In the evaluation function, we illustrate the use of the writer monad
@@ -703,7 +703,7 @@ into our framework: we simply substitute |IO| where we have used
 and as we have seen, the function |runIdentity| for evaluating actions
 in this monad is always applied last.
 
-> type Eval6 alpha = ReaderT Env  (ExceptT String 
+> type Eval6 alpha = ReaderT Env  (ExceptT String
 >                                 (WriterT [String] (StateT Integer IO))) alpha
 
 The return type of |runEval6| is wrapped in an |IO| constructor, which
@@ -712,7 +712,7 @@ a result, but an I/O computation which must be run in order to get at
 the result.  Accordingly, the |runIdentity| invocation disappears.
 
 > runEval6           ::  Env -> Integer -> Eval6 alpha -> IO ((Either String alpha, [String]), Integer)
-> runEval6 env st ev  =   
+> runEval6 env st ev  =
 >     runStateT (runWriterT (runExceptT (runReaderT ev env))) st
 
 In the |eval6| function we can now use I/O operations, with one minor
