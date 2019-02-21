@@ -395,7 +395,7 @@ the result of an evaluation, we can distinguish between normal and
 error results.
 
 \begin{spec}
-runEval2 (eval2a Map.empty (Plus (Lit 1) (Abs "x" (Var "x")))) =>
+runEval2 (eval2b Map.empty (Plus (Lit 1) (Abs "x" (Var "x")))) =>
   Left "type error"
 \end{spec}
 
