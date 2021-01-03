@@ -247,7 +247,7 @@ Based on the |Eval1| monad, we now rewrite the |eval0| function as
 
 > eval1                   ::  Env -> Exp -> Eval1 Value
 > eval1 env (Lit i)       =   return $ IntVal i
-> eval1 env (Var n)       =   maybe (fail ("undefined variable: " ++ n)) return $ Map.lookup n env
+> eval1 env (Var n)       =   maybe (error ("undefined variable: " ++ n)) return $ Map.lookup n env
 > eval1 env (Plus e1 e2)  =   do  ~(IntVal i1)  <- eval1 env e1
 >                                 ~(IntVal i2)  <- eval1 env e2
 >                                 return $ IntVal (i1 + i2)
@@ -350,7 +350,7 @@ following version, called |eval2a|.
 
 > eval2a                   ::  Env -> Exp -> Eval2 Value
 > eval2a env (Lit i)       =   return $ IntVal i
-> eval2a env (Var n)       =   maybe (fail ("undefined variable: " ++ n)) return $ Map.lookup n env
+> eval2a env (Var n)       =   maybe (throwError ("undefined variable: " ++ n)) return $ Map.lookup n env
 > eval2a env (Plus e1 e2)  =   do  ~(IntVal i1)  <- eval2a env e1
 >                                  ~(IntVal i2)  <- eval2a env e2
 >                                  return $ IntVal (i1 + i2)
@@ -374,7 +374,7 @@ our definition in order to give useful error messages:
 
 > eval2b                   ::  Env -> Exp -> Eval2 Value
 > eval2b env (Lit i)       =   return $ IntVal i
-> eval2b env (Var n)       =   maybe (fail ("undefined variable: " ++ n)) return $ Map.lookup n env
+> eval2b env (Var n)       =   maybe (throwError ("undefined variable: " ++ n)) return $ Map.lookup n env
 > eval2b env (Plus e1 e2)  =   do  e1'  <- eval2b env e1
 >                                  e2'  <- eval2b env e2
 >                                  case (e1', e2') of
@@ -418,7 +418,7 @@ what we want.
 
 > eval2c                   ::  Env -> Exp -> Eval2 Value
 > eval2c env (Lit i)       =   return $ IntVal i
-> eval2c env (Var n)       =   maybe (fail ("undefined variable: " ++ n)) return $ Map.lookup n env
+> eval2c env (Var n)       =   maybe (throwError ("undefined variable: " ++ n)) return $ Map.lookup n env
 > eval2c env (Plus e1 e2)  =   do  ~(IntVal i1)  <- eval2c env e1
 >                                  ~(IntVal i2)  <- eval2c env e2
 >                                  return $ IntVal (i1 + i2)
