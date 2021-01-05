@@ -247,7 +247,9 @@ Based on the |Eval1| monad, we now rewrite the |eval0| function as
 
 > eval1                   ::  Env -> Exp -> Eval1 Value
 > eval1 env (Lit i)       =   return $ IntVal i
-> eval1 env (Var n)       =   maybe (fail ("undefined variable: " ++ n)) return $ Map.lookup n env
+> eval1 env (Var n)       =   case Map.lookup n env of
+>                               Nothing -> error ("unbound variable: " ++ n)
+>                               Just val -> return val
 > eval1 env (Plus e1 e2)  =   do  ~(IntVal i1)  <- eval1 env e1
 >                                 ~(IntVal i2)  <- eval1 env e2
 >                                 return $ IntVal (i1 + i2)
@@ -258,16 +260,11 @@ Based on the |Eval1| monad, we now rewrite the |eval0| function as
 >                                   FunVal env' n body ->
 >                                       eval1 (Map.insert n val2 env') body
 
-The first thing to note is that the cases for |Lit| and |Abs| use the
-|return| function for specifying their result.\footnote{The |($)|
-operator is function application with low precedence and mainly used
-to avoid parentheses.}  The next is that the |Var| case does not need
-a |fromJust| call anymore: The reason is that |Map.lookup| is defined
-to work within any monad by simply calling the monad's |fail| function
--- this fits nicely with our monadic formulation here.  (The |fail|
-function of the |Maybe| monad returns |Nothing|, whereas the |fail|
-function in the |Identity| monad throws an exception, which will lead
-to different error messages.)
+The first thing to note is that the cases for |Lit|, |Var| and |Abs|
+use the |return| function for specifying their result.\footnote{The
+|($)| operator is function application with low precedence and mainly
+used to avoid parentheses.} In the |Var| case, the evaluation will
+again terminate with an error message if a variable name is not bound.
 
 The |Plus| and |App| cases now evaluate their subexpressions using
 |do|-notation, binding their results to variables.  In the |Plus|
@@ -350,7 +347,9 @@ following version, called |eval2a|.
 
 > eval2a                   ::  Env -> Exp -> Eval2 Value
 > eval2a env (Lit i)       =   return $ IntVal i
-> eval2a env (Var n)       =   maybe (fail ("undefined variable: " ++ n)) return $ Map.lookup n env
+> eval2a env (Var n)       =   case Map.lookup n env of
+>                                Nothing -> error ("Unbound variable: " ++ n)
+>                                Just val -> return val
 > eval2a env (Plus e1 e2)  =   do  ~(IntVal i1)  <- eval2a env e1
 >                                  ~(IntVal i2)  <- eval2a env e2
 >                                  return $ IntVal (i1 + i2)
@@ -374,7 +373,9 @@ our definition in order to give useful error messages:
 
 > eval2b                   ::  Env -> Exp -> Eval2 Value
 > eval2b env (Lit i)       =   return $ IntVal i
-> eval2b env (Var n)       =   maybe (fail ("undefined variable: " ++ n)) return $ Map.lookup n env
+> eval2b env (Var n)       =   case Map.lookup n env of
+>                                Nothing -> throwError ("unbound variable: " ++ n)
+>                                Just val -> return val
 > eval2b env (Plus e1 e2)  =   do  e1'  <- eval2b env e1
 >                                  e2'  <- eval2b env e2
 >                                  case (e1', e2') of
@@ -399,26 +400,21 @@ runEval2 (eval2b Map.empty (Plus (Lit 1) (Abs "x" (Var "x")))) =>
   Left "type error"
 \end{spec}
 
-But wait a minute!  What is about |Map.lookup n env|?  Shouldn't we
-check whether it returns |Nothing| and generate an appropriate error
-message?  As mentioned above, |Map.lookup| returns its result in an
-arbitrary monad, and the |Control.Monad.Error| module gives the
-necessary definitions so that it works just out of the box:
-
-\begin{spec}
-runEval2 (eval2b Map.empty (Var "x")) =>
-  Left "Data.Map.lookup: Key not found"
-\end{spec}
-
 A little bit of closer inspection of function |eval2b| reveals that we
 can do even shorter (better?) by exploiting the fact that monadic
 binding in a |do| expression uses the |fail| function whenever a
-pattern match fails.  And, as we have seen, the |fail| function does
+pattern match fails. {\footnote{The legacy use of |Monad.fail| in
+do-notation desugaring has been depreciated in favor of
+|MonadFail.fail| as of GHC 8.8.1. See
+\url{https://wiki.haskell.org/MonadFail_Proposal} for details.}}
+And, as we have seen, the |fail| function does
 what we want.
 
 > eval2c                   ::  Env -> Exp -> Eval2 Value
 > eval2c env (Lit i)       =   return $ IntVal i
-> eval2c env (Var n)       =   maybe (fail ("undefined variable: " ++ n)) return $ Map.lookup n env
+> eval2c env (Var n)       =   case Map.lookup n env of
+>                                Nothing -> throwError ("unbound variable: " ++ n)
+>                                Just val -> return val
 > eval2c env (Plus e1 e2)  =   do  ~(IntVal i1)  <- eval2c env e1
 >                                  ~(IntVal i2)  <- eval2c env e2
 >                                  return $ IntVal (i1 + i2)
