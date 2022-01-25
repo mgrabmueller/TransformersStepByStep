@@ -9,7 +9,8 @@
 
 \title{\bf Monad Transformers Step by Step}
 \author{Martin Grabm{\"u}ller}
-\date{Oct 16 2006 (Draft\footnote{Ported to newer GHC in 2012})}
+\date{Oct 16 2006\footnote{Ported to newer GHC versions and smaller
+fixes in 2012, 2015, 2018, 2019, 2021, last changes in 2022.}}
 
 \begin{document}
 \maketitle
@@ -64,7 +65,7 @@ module names of these modules and some of their implementation details
 are beyond Haskell'98.  Nevertheless, these extensions are well
 supported in current versions of the Glasgow Haskell compiler (GHC)
 \cite{GHC2006GHCHomepage}.  The programs have been tested using
-GHC version 7.4.1.
+GHC version 8.4.4.
 
 The monad transformer modules are inspired by a paper by Mark P. Jones
 \cite{Jones1995FunctionalProgramming}, which gives a very readable
@@ -73,11 +74,11 @@ paper.
 
 This document has been converted from a literate Haskell script using
 Andres L{\"o}h's \texttt{lhs2TeX}\footnote{\small\tt
-http://www.iai.uni-bonn.de/\~{}loeh/} preprocessor.  The script is
+\url{https://www.andres-loeh.de/lhs2tex/}} preprocessor.  The script is
 executable by GHC.  The literate Haskell source file
-\texttt{Transformers.lhs} is available from my
-homepage\footnote{\small\tt
-\url{http://www.grabmueller.de/martin/www/pub/Transformers.lhs}}.
+\texttt{Transformers.lhs} is available
+Github\footnote{\small\tt
+\url{https://github.com/mgrabmueller/TransformersStepByStep}}.
 
 It is probably best to read this paper near a computer so that you can
 look up the types and descriptions of the various functions used from
@@ -404,9 +405,9 @@ A little bit of closer inspection of function |eval2b| reveals that we
 can do even shorter (better?) by exploiting the fact that monadic
 binding in a |do| expression uses the |fail| function whenever a
 pattern match fails. {\footnote{The legacy use of |Monad.fail| in
-do-notation desugaring has been depreciated in favor of
+do-notation desugaring has been deprecated in favor of
 |MonadFail.fail| as of GHC 8.8.1. See
-\url{https://wiki.haskell.org/MonadFail_Proposal} for details.}}
+\url{https://gitlab.haskell.org/haskell/prime/-/wikis/libraries/proposals/monad-fail} for details.}}
 And, as we have seen, the |fail| function does
 what we want.
 
@@ -772,8 +773,9 @@ Happy hacking in Haskell!
 
 Thanks to Christian Maeder, Bruno Mart{\'i}nez and Tomasz Zielonka for
 their valuable feedback and suggestions for improvement. Also thanks
-to G{\'a}bor Lipt{\'a}k for providing patches to port this tutorial to newer
-GHC versions.
+to G{\'a}bor Lipt{\'a}k, Franklin Chen, Alexey Pastuhov, Fabian
+Schneider and Julia Jiang for providing patches to fix issues and to
+port this tutorial to newer GHC versions.
 
 \bibliographystyle{plain}
 \bibliography{bibliography}

@@ -21,6 +21,5 @@ cabal.sandbox.config
 *.fls
 *.log
 *.out
-*.pdf
 *.ptb
 *.tex
